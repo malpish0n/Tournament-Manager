@@ -1,9 +1,6 @@
-# Compiled class files
-*.class
+# Maven / Build
 target/
-**/target/
-
-# Maven
+**/target
 .mvn/
 mvnw
 mvnw.cmd
@@ -12,44 +9,76 @@ pom.xml.releaseBackup
 pom.xml.versionsBackup
 pom.xml.next
 release.properties
-dependency-reduced-pom.xml
-build.log
 
-# IDE - IntelliJ
+# IDE - IntelliJ IDEA
 .idea/
 *.iml
 *.iws
 out/
 
-# IDE - Eclipse
+# IDE - Eclipse / STS
 .classpath
 .factorypath
 .project
 .settings/
 .springBeans
-
-# OS
-.DS_Store
-Thumbs.db
+bin/
 
 # Logs
 *.log
 logs/
 
-# Secrets - NIGDY nie commit!
-application.properties
-application.yml
+# OS Generated
+.DS_Store
+Thumbs.db
+.DS_Store?
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.hprof
+hs_err_pid*
+.prof
+
+# Secrets / Config (NIGDY public)
+application*.properties
+application*.yml
 application-secrets.properties
 .env
-jwt.secret
+*.env
 secrets/
-
-# Node/React (jeśli dodamy frontend)
-node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+keystore
+client-secret.json
 
 # Docker
 Dockerfile.user
 .dockerignore
+docker-compose.override.yml
+
+# Node.js / Frontend (React/Vue)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# Archives
+*.zip
+*.tar.gz
+
+# OS
+*.swp
+*~
+
+# IntelliJ specific
+.idea/modules.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+
+# Coverage
+.coverage
+coverage/
