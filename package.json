@@ -1,0 +1,14 @@
+{
+  "name": "match-creator",
+  "version": "1.0.0",
+  "description": "Prosty system do tworzenia meczów dla ziomków",
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "install": "cd frontend && npm install",
+    "build": "cd frontend && npm run build"
+  },
+  "keywords": ["match", "creator", "esport", "tournament"],
+  "author": "Match Creator Team",
+  "license": "MIT"
+}
+
