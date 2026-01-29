@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './App.css';
+
+const API_URL = 'http://localhost:8080/api';
 
 function App() {
   const [players, setPlayers] = useState([]);
   const [matches, setMatches] = useState([]);
-
   const [matchFormat, setMatchFormat] = useState('');
   const [seriesType, setSeriesType] = useState('');
   const [teamAPlayers, setTeamAPlayers] = useState([]);
   const [teamBPlayers, setTeamBPlayers] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState('');
-
   const [newPlayerNick, setNewPlayerNick] = useState('');
   const [teamAInput, setTeamAInput] = useState('');
   const [teamBInput, setTeamBInput] = useState('');
@@ -25,43 +26,51 @@ function App() {
 
   const seriesTypes = ['BO1', 'BO3', 'BO5', 'Unlimited'];
 
-  // Load from LocalStorage
+  // Fetch data from API
   useEffect(() => {
-    const savedPlayers = localStorage.getItem('players');
-    const savedMatches = localStorage.getItem('matches');
-
-    if (savedPlayers) setPlayers(JSON.parse(savedPlayers));
-    if (savedMatches) setMatches(JSON.parse(savedMatches));
+    fetchData();
   }, []);
 
-  // Save to LocalStorage
-  useEffect(() => {
-    localStorage.setItem('players', JSON.stringify(players));
-  }, [players]);
-
-  useEffect(() => {
-    localStorage.setItem('matches', JSON.stringify(matches));
-  }, [matches]);
-
-  // Player Management
-  const createPlayer = () => {
-    if (!newPlayerNick.trim()) return;
-
-    const newPlayer = {
-      id: Date.now(),
-      nick: newPlayerNick.trim()
-    };
-
-    setPlayers([...players, newPlayer]);
-    setNewPlayerNick('');
+  const fetchData = async () => {
+    try {
+      const [playersRes, matchesRes] = await Promise.all([
+        axios.get(`${API_URL}/players`),
+        axios.get(`${API_URL}/matches`)
+      ]);
+      setPlayers(playersRes.data);
+      setMatches(matchesRes.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      alert('Cannot connect to backend! Make sure Spring Boot is running on port 8080');
+    }
   };
 
-  const deletePlayer = (id) => {
-    setPlayers(players.filter(p => p.id !== id));
+  // Player Management
+  const createPlayer = async () => {
+    if (!newPlayerNick.trim()) return;
+
+    try {
+      await axios.post(`${API_URL}/players`, { nick: newPlayerNick.trim() });
+      setNewPlayerNick('');
+      fetchData();
+    } catch (error) {
+      console.error('Error creating player:', error);
+      alert('Error creating player');
+    }
+  };
+
+  const deletePlayer = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/players/${id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      alert('Error deleting player');
+    }
   };
 
   // Match Creation - Add by input
-  const addPlayerByInput = (team) => {
+  const addPlayerByInput = async (team) => {
     const input = team === 'A' ? teamAInput : teamBInput;
     if (!input.trim()) return;
 
@@ -73,22 +82,28 @@ function App() {
       return;
     }
 
-    const newPlayer = {
-      id: Date.now() + Math.random(),
-      nick: input.trim()
-    };
+    const playerNick = input.trim();
+    let existingPlayer = players.find(p => p.nick.toLowerCase() === playerNick.toLowerCase());
 
-    // Add to players list if doesn't exist
-    if (!players.find(p => p.nick.toLowerCase() === input.trim().toLowerCase())) {
-      setPlayers([...players, newPlayer]);
+    // Create player in DB if doesn't exist
+    if (!existingPlayer) {
+      try {
+        const response = await axios.post(`${API_URL}/players`, { nick: playerNick });
+        existingPlayer = response.data;
+        setPlayers([...players, existingPlayer]);
+      } catch (error) {
+        console.error('Error creating player:', error);
+        alert('Error creating player');
+        return;
+      }
     }
 
     // Add to team
     if (team === 'A') {
-      setTeamAPlayers([...teamAPlayers, newPlayer]);
+      setTeamAPlayers([...teamAPlayers, existingPlayer]);
       setTeamAInput('');
     } else {
-      setTeamBPlayers([...teamBPlayers, newPlayer]);
+      setTeamBPlayers([...teamBPlayers, existingPlayer]);
       setTeamBInput('');
     }
   };
@@ -101,7 +116,7 @@ function App() {
     }
   };
 
-  const createMatch = () => {
+  const createMatch = async () => {
     if (!matchFormat || !seriesType) {
       alert('Please select match format and series type!');
       return;
@@ -114,63 +129,75 @@ function App() {
       return;
     }
 
-    const newMatch = {
-      id: Date.now(),
-      format: matchFormat,
-      seriesType: seriesType,
-      teamA: teamAPlayers.map(p => p.nick),
-      teamB: teamBPlayers.map(p => p.nick),
-      scoreA: 0,
-      scoreB: 0,
-      winner: null,
-      createdAt: new Date().toLocaleString('en-US')
-    };
+    try {
+      await axios.post(`${API_URL}/matches`, {
+        format: matchFormat,
+        seriesType: seriesType,
+        teamA: teamAPlayers.map(p => p.nick),
+        teamB: teamBPlayers.map(p => p.nick)
+      });
 
-    setMatches([newMatch, ...matches]);
-    setTeamAPlayers([]);
-    setTeamBPlayers([]);
-    setSelectedPlayer('');
-    setMatchFormat('');
-    setSeriesType('');
-    setTeamAInput('');
-    setTeamBInput('');
-    alert('Match created! 🎮');
-  };
-
-  const updateScore = (matchId, team, value) => {
-    setMatches(matches.map(match => {
-      if (match.id === matchId) {
-        const newMatch = { ...match };
-        if (team === 'A') newMatch.scoreA = parseInt(value) || 0;
-        else newMatch.scoreB = parseInt(value) || 0;
-
-        // Determine winner
-        if (newMatch.scoreA > newMatch.scoreB) {
-          newMatch.winner = 'Team A';
-        } else if (newMatch.scoreB > newMatch.scoreA) {
-          newMatch.winner = 'Team B';
-        } else {
-          newMatch.winner = null;
-        }
-
-        return newMatch;
-      }
-      return match;
-    }));
-  };
-
-  const deleteMatch = (id) => {
-    setMatches(matches.filter(m => m.id !== id));
-  };
-
-  const clearAllData = () => {
-    if (window.confirm('Are you sure you want to delete ALL data? (players + matches)')) {
-      setPlayers([]);
-      setMatches([]);
       setTeamAPlayers([]);
       setTeamBPlayers([]);
-      localStorage.clear();
-      alert('All data cleared! 🗑️');
+      setSelectedPlayer('');
+      setMatchFormat('');
+      setSeriesType('');
+      setTeamAInput('');
+      setTeamBInput('');
+      alert('Match created! 🎮');
+      fetchData();
+    } catch (error) {
+      console.error('Error creating match:', error);
+      alert('Error creating match');
+    }
+  };
+
+  const updateScore = async (matchId, team, value) => {
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+
+    const scoreA = team === 'A' ? (parseInt(value) || 0) : match.scoreA;
+    const scoreB = team === 'B' ? (parseInt(value) || 0) : match.scoreB;
+
+    try {
+      await axios.patch(`${API_URL}/matches/${matchId}/score`, { scoreA, scoreB });
+      fetchData();
+    } catch (error) {
+      console.error('Error updating score:', error);
+      alert('Error updating score');
+    }
+  };
+
+  const deleteMatch = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/matches/${id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      alert('Error deleting match');
+    }
+  };
+
+  const clearAllData = async () => {
+    if (window.confirm('Are you sure you want to delete ALL data? (players + matches)')) {
+      try {
+        for (const match of matches) {
+          await axios.delete(`${API_URL}/matches/${match.id}`);
+        }
+        for (const player of players) {
+          await axios.delete(`${API_URL}/players/${player.id}`);
+        }
+
+        setPlayers([]);
+        setMatches([]);
+        setTeamAPlayers([]);
+        setTeamBPlayers([]);
+        alert('All data cleared! 🗑️');
+        fetchData();
+      } catch (error) {
+        console.error('Error clearing data:', error);
+        alert('Error clearing data');
+      }
     }
   };
 
@@ -455,11 +482,10 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>💾 Data saved locally in browser</p>
+        <p>💾 Data saved in PostgreSQL | Backend: localhost:8080 | Frontend: localhost:3000</p>
       </footer>
     </div>
   );
 }
 
 export default App;
-
