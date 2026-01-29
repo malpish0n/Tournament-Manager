@@ -10,19 +10,6 @@ echo ""
 
 cd "$PROJECT_ROOT/backend"
 
-# Check if PostgreSQL is running
-if ! pg_isready -q; then
-    echo "⚠️  PostgreSQL is not running!"
-    echo "Start it with: brew services start postgresql@14"
-    echo ""
-fi
-
-# Check if database exists
-if ! psql -lqt | cut -d \| -f 1 | grep -qw tournamentdb; then
-    echo "⚠️  Database 'tournamentdb' does not exist!"
-    echo "Create it with: createdb tournamentdb"
-    echo ""
-fi
 
 echo "Starting Spring Boot..."
 mvn spring-boot:run
