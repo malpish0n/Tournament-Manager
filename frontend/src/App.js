@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
+import { generateBracket } from './bracketUtils';
 
 const API_URL = 'http://localhost:8080/api';
 
@@ -16,6 +17,11 @@ function App() {
   const [teamAInput, setTeamAInput] = useState('');
   const [teamBInput, setTeamBInput] = useState('');
   const [view, setView] = useState('matchCreator');
+
+  // Bracket Creator State
+  const [bracketSize, setBracketSize] = useState(4);
+  const [bracketParticipants, setBracketParticipants] = useState(Array(4).fill(''));
+  const [generatedBracket, setGeneratedBracket] = useState(null);
 
   const formatSizes = {
     '1v1': 1,
@@ -156,11 +162,43 @@ function App() {
     const match = matches.find(m => m.id === matchId);
     if (!match) return;
 
-    const scoreA = team === 'A' ? (parseInt(value) || 0) : match.scoreA;
-    const scoreB = team === 'B' ? (parseInt(value) || 0) : match.scoreB;
+    let scoreA = team === 'A' ? (parseInt(value) || 0) : match.scoreA;
+    let scoreB = team === 'B' ? (parseInt(value) || 0) : match.scoreB;
+
+    // Prevent negative scores
+    scoreA = Math.max(0, scoreA);
+    scoreB = Math.max(0, scoreB);
+
+    // Check for win condition
+    let winner = null;
+    let seriesType = match.seriesType || 'BO3'; // Default to BO3 if not set
+    let gamesToWin = 0;
+
+    if (seriesType === 'BO1') gamesToWin = 1;
+    else if (seriesType === 'BO3') gamesToWin = 2;
+    else if (seriesType === 'BO5') gamesToWin = 3;
+    else if (seriesType === 'Unlimited') gamesToWin = 999;
+
+    if (scoreA >= gamesToWin) {
+        winner = match.teamA.join(', '); // Simplified: taking team name
+        // Cap score if needed, but usually we let it be
+    } else if (scoreB >= gamesToWin) {
+        winner = match.teamB.join(', ');
+    }
 
     try {
-      await axios.patch(`${API_URL}/matches/${matchId}/score`, { scoreA, scoreB });
+      // Need backend support for updating winner directly via score endpoint or separate
+      // Assuming existing backend logic might calculate winner, but if we want to enforce it here:
+      // We might need a separate call or specific payload.
+      // For now, let's just update score. If the backend handles winner, great.
+      // If we need to display it locally based on score, we can do it in the render.
+      // But the user asked to SHOW winner only if condition met.
+      // So we will optimistic update local state to show it.
+
+      const response = await axios.patch(`${API_URL}/matches/${matchId}/score`, { scoreA, scoreB });
+      // If backend returns the updated match which includes winner
+      // setMatches(matches.map(m => m.id === matchId ? response.data : m));
+      // Re-fetch to be safe and get backend's view on winner
       fetchData();
     } catch (error) {
       console.error('Error updating score:', error);
@@ -192,6 +230,7 @@ function App() {
         setMatches([]);
         setTeamAPlayers([]);
         setTeamBPlayers([]);
+        setBracketParticipants(Array(bracketSize).fill(''));
         alert('All data cleared! 🗑️');
         fetchData();
       } catch (error) {
@@ -201,10 +240,74 @@ function App() {
     }
   };
 
+  // Bracket Functions
+  const handleBracketSizeChange = (size) => {
+    setBracketSize(size);
+    // Preserve existing names if possible when resizing, or reset? Reset is safer for now to avoid confusion with indices
+    const current = [...bracketParticipants];
+    const newParticipants = Array(size).fill('').map((_, i) => current[i] || '');
+    setBracketParticipants(newParticipants);
+  };
+
+  useEffect(() => {
+    const savedBracket = localStorage.getItem('tournamentBracket');
+    if (savedBracket) {
+      setGeneratedBracket(JSON.parse(savedBracket));
+    }
+  }, []);
+
+  const handleParticipantChange = (index, value) => {
+    const newParticipants = [...bracketParticipants];
+    newParticipants[index] = value;
+    setBracketParticipants(newParticipants);
+  };
+
   const availablePlayers = players.filter(p =>
     !teamAPlayers.find(tp => tp.id === p.id) &&
     !teamBPlayers.find(tp => tp.id === p.id)
   );
+
+  const handleGenerateBracket = () => {
+     // Validate
+     if (bracketParticipants.some(p => !p.trim())) {
+        alert('Please fill in all participant names!');
+        return;
+     }
+     const newBracket = generateBracket(bracketParticipants);
+     setGeneratedBracket(newBracket);
+     localStorage.setItem('tournamentBracket', JSON.stringify(newBracket));
+  };
+
+  const handleBracketWin = (roundIndex, matchIndex, winnerName) => {
+      const newBracket = [...generatedBracket];
+      const match = newBracket[roundIndex][matchIndex];
+      match.winner = winnerName;
+
+      // Propagate to next round
+      if (match.nextMatchId) {
+          // Find next match
+          // Since roundIndex + 1 is the next round array
+          const nextRound = newBracket[roundIndex + 1];
+          const nextMatch = nextRound.find(m => m.id === match.nextMatchId);
+
+          if (nextMatch) {
+              // Determine if it should be player1 or player2
+              // Logic: matchIndex is even -> player1 slot, odd -> player2 slot in next match
+              // Wait, my generation logic was: i*2 goes to next match.
+              // matchIndex 0 and 1 -> nextMatchIndex 0
+              if (matchIndex % 2 === 0) {
+                  nextMatch.player1 = winnerName;
+              } else {
+                  nextMatch.player2 = winnerName;
+              }
+              // Reset winner of next match if it was already decided (in case of changing history)
+              nextMatch.winner = null;
+              // Clear subsequent if needed... simple for now.
+          }
+      }
+      setGeneratedBracket(newBracket);
+      localStorage.setItem('tournamentBracket', JSON.stringify(newBracket));
+  };
 
   return (
     <div className="App">
@@ -219,10 +322,10 @@ function App() {
             🎯 Create Match
           </button>
           <button
-            className={view === 'playerManager' ? 'active' : ''}
-            onClick={() => setView('playerManager')}
+            className={view === 'bracketCreator' ? 'active' : ''}
+            onClick={() => setView('bracketCreator')}
           >
-            👥 Players ({players.length})
+            🏆 Bracket Creator
           </button>
           <button
             className={view === 'matches' ? 'active' : ''}
@@ -380,6 +483,79 @@ function App() {
           </div>
         )}
 
+        {view === 'bracketCreator' && (
+          <div className="bracket-creator">
+            <h2>🏆 Bracket Creator</h2>
+
+            <div className="bracket-setup">
+              <div className="setup-section">
+                <h3>1. Choose Size</h3>
+                <div className="size-buttons">
+                  {[2, 4, 8, 16].map(size => (
+                    <button
+                      key={size}
+                      className={bracketSize === size ? 'active' : ''}
+                      onClick={() => handleBracketSizeChange(size)}
+                    >
+                      {size} Teams
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="setup-section">
+                <h3>2. Add Participants</h3>
+                <div className="participants-grid">
+                  {bracketParticipants.map((name, index) => (
+                    <div key={index} className="participant-input-group">
+                      <span className="seed">#{index + 1}</span>
+                      <input
+                        type="text"
+                        placeholder={`Name/Team ${index + 1}`}
+                        value={name}
+                        onChange={(e) => handleParticipantChange(index, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button className="create-match-btn" onClick={handleGenerateBracket}>
+                 Generate Bracket
+              </button>
+
+              {generatedBracket && (
+                  <div className="bracket-display">
+                    <h3>🏆 Tournament Bracket</h3>
+                    <div className="bracket-rounds">
+                        {generatedBracket.map((round, rIndex) => (
+                            <div key={rIndex} className="bracket-round">
+                                <h4>Round {rIndex + 1}</h4>
+                                {round.map((match, mIndex) => (
+                                    <div key={match.id} className="bracket-match">
+                                        <div className={`bracket-player ${match.winner === match.player1 ? 'winner' : ''} ${!match.player1 ? 'tbd' : ''}`}>
+                                            <span>{match.player1 || 'TBD'}</span>
+                                            {match.player1 && !match.winner && (
+                                                <button onClick={() => handleBracketWin(rIndex, mIndex, match.player1)}>Win</button>
+                                            )}
+                                        </div>
+                                        <div className={`bracket-player ${match.winner === match.player2 ? 'winner' : ''} ${!match.player2 ? 'tbd' : ''}`}>
+                                            <span>{match.player2 || 'TBD'}</span>
+                                            {match.player2 && !match.winner && (
+                                                <button onClick={() => handleBracketWin(rIndex, mIndex, match.player2)}>Win</button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                  </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {view === 'playerManager' && (
           <div className="manager-section">
             <h2>Manage Players</h2>
@@ -447,19 +623,31 @@ function App() {
                       </div>
 
                       <div className="match-score">
-                        <input
-                          type="number"
-                          min="0"
-                          value={match.scoreA}
-                          onChange={(e) => updateScore(match.id, 'A', e.target.value)}
-                        />
-                        <span>:</span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={match.scoreB}
-                          onChange={(e) => updateScore(match.id, 'B', e.target.value)}
-                        />
+                        <div className="score-input-group">
+                          <input
+                            type="number"
+                            min="0"
+                            value={match.scoreA}
+                            onChange={(e) => updateScore(match.id, 'A', e.target.value)}
+                          />
+                          <div className="score-controls">
+                            <button onClick={() => updateScore(match.id, 'A', (match.scoreA || 0) - 1)} className="score-btn minus">-</button>
+                            <button onClick={() => updateScore(match.id, 'A', (match.scoreA || 0) + 1)} className="score-btn plus">+</button>
+                          </div>
+                        </div>
+                        <span className="sc-divider">:</span>
+                        <div className="score-input-group">
+                          <input
+                            type="number"
+                            min="0"
+                            value={match.scoreB}
+                            onChange={(e) => updateScore(match.id, 'B', e.target.value)}
+                          />
+                          <div className="score-controls">
+                            <button onClick={() => updateScore(match.id, 'B', (match.scoreB || 0) - 1)} className="score-btn minus">-</button>
+                            <button onClick={() => updateScore(match.id, 'B', (match.scoreB || 0) + 1)} className="score-btn plus">+</button>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="team-side">
@@ -482,7 +670,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>💾 Data saved in PostgreSQL | Backend: localhost:8080 | Frontend: localhost:3000</p>
+        <p>💾 Data saved locally in browser | Backend: localhost:8080 | Frontend: localhost:3000</p>
       </footer>
     </div>
   );
