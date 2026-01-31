@@ -17,6 +17,7 @@ function App() {
   const [teamAInput, setTeamAInput] = useState('');
   const [teamBInput, setTeamBInput] = useState('');
   const [view, setView] = useState('matchCreator');
+  const [createdMatchId, setCreatedMatchId] = useState(null); // New state to track created match
 
   // Bracket Creator State
   const [bracketSize, setBracketSize] = useState(4);
@@ -136,7 +137,7 @@ function App() {
     }
 
     try {
-      await axios.post(`${API_URL}/matches`, {
+      const response = await axios.post(`${API_URL}/matches`, {
         format: matchFormat,
         seriesType: seriesType,
         teamA: teamAPlayers.map(p => p.nick),
@@ -150,7 +151,8 @@ function App() {
       setSeriesType('');
       setTeamAInput('');
       setTeamBInput('');
-      alert('Match created! 🎮');
+
+      setCreatedMatchId(response.data.id); // Save created match ID
       fetchData();
     } catch (error) {
       console.error('Error creating match:', error);
@@ -231,7 +233,7 @@ function App() {
         setTeamAPlayers([]);
         setTeamBPlayers([]);
         setBracketParticipants(Array(bracketSize).fill(''));
-        alert('All data cleared! 🗑️');
+        alert('All data cleared!');
         fetchData();
       } catch (error) {
         console.error('Error clearing data:', error);
@@ -266,6 +268,30 @@ function App() {
     !teamAPlayers.find(tp => tp.id === p.id) &&
     !teamBPlayers.find(tp => tp.id === p.id)
   );
+
+  // Helper function to determine if there's a winner based on series type
+  const getMatchWinner = (match) => {
+    if (!match) return null;
+
+    const seriesType = match.seriesType || 'BO3';
+    let gamesToWin = 0;
+
+    if (seriesType === 'BO1') gamesToWin = 1;
+    else if (seriesType === 'BO3') gamesToWin = 2;
+    else if (seriesType === 'BO5') gamesToWin = 3;
+    else if (seriesType === 'Unlimited') return null; // Never declare winner for Unlimited
+
+    const scoreA = match.scoreA || 0;
+    const scoreB = match.scoreB || 0;
+
+    if (scoreA >= gamesToWin) {
+      return match.teamA.join(', ');
+    } else if (scoreB >= gamesToWin) {
+      return match.teamB.join(', ');
+    }
+
+    return null;
+  };
 
   const handleGenerateBracket = () => {
      // Validate
@@ -312,26 +338,26 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🎮 Match Creator</h1>
-        <p className="subtitle">Quick match creation system</p>
+        <h1>Tournament Manager</h1>
+        <p className="subtitle">Professional Tournament Management System</p>
         <nav className="nav-tabs">
           <button
             className={view === 'matchCreator' ? 'active' : ''}
             onClick={() => setView('matchCreator')}
           >
-            🎯 Create Match
+            Create Match
           </button>
           <button
             className={view === 'bracketCreator' ? 'active' : ''}
             onClick={() => setView('bracketCreator')}
           >
-            🏆 Bracket Creator
+            Bracket Creator
           </button>
           <button
             className={view === 'matches' ? 'active' : ''}
             onClick={() => setView('matches')}
           >
-            📋 Matches ({matches.length})
+            Matches ({matches.length})
           </button>
         </nav>
       </header>
@@ -343,7 +369,7 @@ function App() {
 
             {/* STEP 1: Select Format */}
             <div className="format-selector">
-              <h3>⚡ Step 1: Select Match Format</h3>
+              <h3>Step 1: Select Match Format</h3>
               <div className="format-buttons">
                 {Object.keys(formatSizes).map(format => (
                   <button
@@ -367,7 +393,7 @@ function App() {
             {/* STEP 2: Select Series Type */}
             {matchFormat && (
               <div className="series-selector">
-                <h3>🎯 Step 2: Select Series Type</h3>
+                <h3>Step 2: Select Series Type</h3>
                 <div className="series-buttons">
                   {seriesTypes.map(series => (
                     <button
@@ -380,10 +406,10 @@ function App() {
                   ))}
                 </div>
                 <p className="series-info">
-                  {seriesType === 'BO1' && '📌 Best of 1 - First to win 1 game'}
-                  {seriesType === 'BO3' && '📌 Best of 3 - First to win 2 games'}
-                  {seriesType === 'BO5' && '📌 Best of 5 - First to win 3 games'}
-                  {seriesType === 'Unlimited' && '📌 Unlimited - Play as much as you want!'}
+                  {seriesType === 'BO1' && 'Best of 1 - First to win 1 game'}
+                  {seriesType === 'BO3' && 'Best of 3 - First to win 2 games'}
+                  {seriesType === 'BO5' && 'Best of 5 - First to win 3 games'}
+                  {seriesType === 'Unlimited' && 'Unlimited - Play as much as you want!'}
                 </p>
               </div>
             )}
@@ -391,12 +417,12 @@ function App() {
             {/* STEP 3: Add Players */}
             {!matchFormat || !seriesType ? (
               <div className="empty-state">
-                <p>👆 First select match format and series type</p>
+                <p>Please select match format and series type to continue.</p>
               </div>
             ) : (
               <>
                 <div className="match-summary">
-                  <h3>👥 Step 3: Add Players to Teams</h3>
+                  <h3>Step 3: Add Players to Teams</h3>
                   <div className="selected-options">
                     <span className="badge">Format: {matchFormat}</span>
                     <span className="badge">Series: {seriesType}</span>
@@ -476,16 +502,36 @@ function App() {
                   onClick={createMatch}
                   disabled={teamAPlayers.length !== formatSizes[matchFormat] || teamBPlayers.length !== formatSizes[matchFormat]}
                 >
-                  🎮 Create Match!
+                  Create Match
                 </button>
               </>
+            )}
+
+            {createdMatchId && (
+              <div className="success-overlay">
+                <div className="success-modal">
+                  <h3>Match Created!</h3>
+                  <p>Match ID: {createdMatchId}</p>
+                  <div className="success-actions">
+                    <button className="view-btn" onClick={() => {
+                      setView('matches');
+                      setCreatedMatchId(null);
+                    }}>
+                      View Matches
+                    </button>
+                    <button className="close-btn" onClick={() => setCreatedMatchId(null)}>
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}
 
         {view === 'bracketCreator' && (
           <div className="bracket-creator">
-            <h2>🏆 Bracket Creator</h2>
+            <h2>Bracket Creator</h2>
 
             <div className="bracket-setup">
               <div className="setup-section">
@@ -526,7 +572,7 @@ function App() {
 
               {generatedBracket && (
                   <div className="bracket-display">
-                    <h3>🏆 Tournament Bracket</h3>
+                    <h3>Tournament Bracket</h3>
                     <div className="bracket-rounds">
                         {generatedBracket.map((round, rIndex) => (
                             <div key={rIndex} className="bracket-round">
@@ -573,13 +619,13 @@ function App() {
 
             {players.length === 0 ? (
               <div className="empty-state">
-                <p>😢 No players yet. Add your first player above!</p>
+                <p>No players yet. Add your first player above.</p>
               </div>
             ) : (
               <ul className="item-list">
                 {players.map(player => (
                   <li key={player.id}>
-                    <span>👤 {player.nick}</span>
+                    <span>{player.nick}</span>
                     <button onClick={() => deletePlayer(player.id)}>Delete</button>
                   </li>
                 ))}
@@ -588,7 +634,7 @@ function App() {
 
             <div className="danger-zone">
               <button className="danger-btn" onClick={clearAllData}>
-                🗑️ Clear All Data
+                Clear All Data
               </button>
             </div>
           </div>
@@ -600,7 +646,7 @@ function App() {
 
             {matches.length === 0 ? (
               <div className="empty-state">
-                <p>📋 No matches yet. Create your first match!</p>
+                <p>No matches yet. Create your first match!</p>
                 <button onClick={() => setView('matchCreator')}>Create Match</button>
               </div>
             ) : (
@@ -656,9 +702,9 @@ function App() {
                       </div>
                     </div>
 
-                    {match.winner && (
+                    {getMatchWinner(match) && (
                       <div className="winner-badge">
-                        🏆 Winner: {match.winner}
+                        Winner: {getMatchWinner(match)}
                       </div>
                     )}
                   </li>
@@ -670,7 +716,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>💾 Data saved locally in browser | Backend: localhost:8080 | Frontend: localhost:3000</p>
+        <p>Data saved locally in browser | Backend: localhost:8080 | Frontend: localhost:3000</p>
       </footer>
     </div>
   );
