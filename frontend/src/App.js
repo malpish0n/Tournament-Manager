@@ -267,6 +267,30 @@ function App() {
     !teamBPlayers.find(tp => tp.id === p.id)
   );
 
+  // Helper function to determine if there's a winner based on series type
+  const getMatchWinner = (match) => {
+    if (!match) return null;
+
+    const seriesType = match.seriesType || 'BO3';
+    let gamesToWin = 0;
+
+    if (seriesType === 'BO1') gamesToWin = 1;
+    else if (seriesType === 'BO3') gamesToWin = 2;
+    else if (seriesType === 'BO5') gamesToWin = 3;
+    else if (seriesType === 'Unlimited') return null; // Never declare winner for Unlimited
+
+    const scoreA = match.scoreA || 0;
+    const scoreB = match.scoreB || 0;
+
+    if (scoreA >= gamesToWin) {
+      return match.teamA.join(', ');
+    } else if (scoreB >= gamesToWin) {
+      return match.teamB.join(', ');
+    }
+
+    return null;
+  };
+
   const handleGenerateBracket = () => {
      // Validate
      if (bracketParticipants.some(p => !p.trim())) {
@@ -656,9 +680,9 @@ function App() {
                       </div>
                     </div>
 
-                    {match.winner && (
+                    {getMatchWinner(match) && (
                       <div className="winner-badge">
-                        🏆 Winner: {match.winner}
+                        🏆 Winner: {getMatchWinner(match)}
                       </div>
                     )}
                   </li>

@@ -16,11 +16,18 @@
   --border-color: #333;
 }
 
+html {
+  overflow-y: scroll; /* prevent layout shift when content height changes */
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: var(--bg-dark);
   color: var(--text-primary);
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .App {
@@ -87,6 +94,7 @@ body {
 
 .container {
   max-width: 1200px;
+  width: 100%;
   margin: 40px auto;
   padding: 0 20px;
   flex: 1;
@@ -98,6 +106,22 @@ body {
   border-radius: 16px;
   border: 1px solid var(--border-color);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-height: 600px;
+  width: 1000px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.bracket-creator {
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-height: 600px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 h2 {
@@ -124,6 +148,7 @@ h3 {
   background: rgba(0, 0, 0, 0.2);
   padding: 25px;
   border-radius: 12px;
+  min-height: 200px;
 }
 
 .format-buttons, .series-buttons {
@@ -131,6 +156,8 @@ h3 {
   gap: 20px;
   justify-content: center;
   flex-wrap: wrap;
+  min-height: 80px;
+  align-items: center;
 }
 
 .format-buttons button, .series-buttons button {
@@ -151,14 +178,12 @@ h3 {
 .format-buttons button:hover, .series-buttons button:hover {
   border-color: var(--accent-magenta);
   color: var(--text-primary);
-  transform: translateY(-2px);
 }
 
 .format-buttons button.active, .series-buttons button.active {
   background: var(--accent-magenta);
   color: white;
   border-color: var(--accent-magenta);
-  transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
 }
 
