@@ -16,7 +16,7 @@ describe('App', () => {
 
   test('renders main header', () => {
     render(<App />);
-    expect(screen.getByText(/match creator/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tournament Manager/i)).toBeInTheDocument();
   });
 
   test('renders navigation tabs', () => {
