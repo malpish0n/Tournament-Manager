@@ -23,5 +23,7 @@ public class CreateMatchRequest {
 
     @NotNull(message = "Team B is required")
     private List<String> teamB;
-}
 
+    private String teamAName;
+    private String teamBName;
+}

@@ -36,6 +36,8 @@ public class MatchService {
                 .seriesType(request.getSeriesType())
                 .teamA(toJson(request.getTeamA()))
                 .teamB(toJson(request.getTeamB()))
+                .teamAName(request.getTeamAName())
+                .teamBName(request.getTeamBName())
                 .scoreA(0)
                 .scoreB(0)
                 .build();
@@ -52,9 +54,11 @@ public class MatchService {
         match.setScoreB(request.getScoreB());
 
         if (request.getScoreA() > request.getScoreB()) {
-            match.setWinner("Team A");
+            String winnerName = match.getTeamAName() != null && !match.getTeamAName().isEmpty() ? match.getTeamAName() : "Team A";
+            match.setWinner(winnerName);
         } else if (request.getScoreB() > request.getScoreA()) {
-            match.setWinner("Team B");
+            String winnerName = match.getTeamBName() != null && !match.getTeamBName().isEmpty() ? match.getTeamBName() : "Team B";
+            match.setWinner(winnerName);
         } else {
             match.setWinner(null);
         }
@@ -74,6 +78,8 @@ public class MatchService {
                 .seriesType(match.getSeriesType())
                 .teamA(fromJson(match.getTeamA()))
                 .teamB(fromJson(match.getTeamB()))
+                .teamAName(match.getTeamAName())
+                .teamBName(match.getTeamBName())
                 .scoreA(match.getScoreA())
                 .scoreB(match.getScoreB())
                 .winner(match.getWinner())
@@ -97,4 +103,3 @@ public class MatchService {
         }
     }
 }
-

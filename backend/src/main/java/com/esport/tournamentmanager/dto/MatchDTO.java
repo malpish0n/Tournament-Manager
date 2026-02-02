@@ -21,5 +21,6 @@ public class MatchDTO {
     private Integer scoreB;
     private String winner;
     private String createdAt;
+    private String teamAName;
+    private String teamBName;
 }
-

@@ -27,6 +27,9 @@ public class Match {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String teamB;
 
+    private String teamAName;
+    private String teamBName;
+
     @Column(nullable = false)
     private Integer scoreA = 0;
 
@@ -43,4 +46,3 @@ public class Match {
         createdAt = LocalDateTime.now();
     }
 }
-
