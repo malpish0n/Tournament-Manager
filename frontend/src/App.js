@@ -285,9 +285,9 @@ function App() {
     const scoreB = match.scoreB || 0;
 
     if (scoreA >= gamesToWin) {
-      return match.teamA.join(', ');
+      return 'Team A';
     } else if (scoreB >= gamesToWin) {
-      return match.teamB.join(', ');
+      return 'Team B';
     }
 
     return null;
