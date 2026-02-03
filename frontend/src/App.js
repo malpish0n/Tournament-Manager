@@ -554,10 +554,10 @@ function App() {
                 <div className="participants-grid">
                   {bracketParticipants.map((name, index) => (
                     <div key={index} className="participant-input-group">
-                      <span className="seed">#{index + 1}</span>
+                      <span className="seed">{index + 1}.</span>
                       <input
                         type="text"
-                        placeholder={`Name/Team ${index + 1}`}
+                        placeholder={`Team name...`}
                         value={name}
                         onChange={(e) => handleParticipantChange(index, e.target.value)}
                       />
