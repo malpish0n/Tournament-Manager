@@ -1,95 +1,92 @@
-# Tournament Manager - Spring Boot + React
+# 🏆 Tournament Manager
 
-Full-stack tournament management system.
+A full-stack application for managing esports tournaments, organizing matches, and visualizing results with a dynamic bracket system.
 
-## 🏗️ Architecture
-
-**Backend:** Spring Boot 3.2.1 + PostgreSQL
-**Frontend:** React 18 + Axios  
-**Database:** PostgreSQL
-
-## 🚀 Quick Start
-
-### Prerequisites:
-- Java 17+
-- Maven
-- Node.js 16+
-- PostgreSQL
-
-### Setup Database:
-```bash
-createdb tournamentdb
-```
-
-### Setup Project (One-time):
-```bash
-./scripts/setup.sh
-```
-
-### Run Backend (Terminal 1):
-```bash
-./scripts/start-backend.sh
-```
-
-### Run Frontend (Terminal 2):
-```bash
-./scripts/start-frontend.sh
-```
-
-### Open:
-**http://localhost:3000**
+![Tournament Bracket](https://via.placeholder.com/800x400.png?text=Tournament+Manager+Preview)
+*(You can replace this placeholder with a screenshot of your symmetric bracket)*
 
 ## ✨ Features
 
-- Match creation (1v1, 2v2, 3v3, 5v5)
-- Series types (BO1, BO3, BO5, Unlimited)
-- Inline player addition (type + click "+")
-- Real-time score updates
-- PostgreSQL persistence
-- REST API backend
+*   **Match Management**: Create, view, update, and delete matches.
+*   **Dynamic Bracket**: Visual symmetric tournament bracket that automatically organizes matches and updates based on scores.
+*   **Player & Team System**: Manage player profiles and team rosters.
+*   **Score Tracking**: Real-time score updates with automatic winner progression.
+*   **Responsive Design**: Optimized for various screen sizes with a dark-themed UI.
 
-## 🔗 API Endpoints
+## 🛠️ Tech Stack
 
-- `GET /api/players` - Get all players
-- `POST /api/players` - Create player
-- `DELETE /api/players/{id}` - Delete player
-- `GET /api/matches` - Get all matches
-- `POST /api/matches` - Create match
-- `PATCH /api/matches/{id}/score` - Update score
-- `DELETE /api/matches/{id}` - Delete match
+### Backend
+*   **Java 17**
+*   **Spring Boot 4.0.2** (Web, JPA)
+*   **H2 Database** (File-based local storage)
+*   **Lombok**
+*   **Maven**
+
+### Frontend
+*   **React 19**
+*   **Axios** for API communication
+*   **SVG** for custom bracket rendering
+*   **CSS Variables** for theming
+
+## 🚀 Getting Started
+
+### Prerequisites
+*   Node.js (v16+)
+*   Java JDK 17+
+*   Maven
+
+### 📦 Installation
+
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/yourusername/tournament-manager.git
+    cd tournament-manager
+    ```
+
+2.  **Start the Backend**
+    Navigate to the backend directory and run the Spring Boot application.
+    ```bash
+    cd backend
+    ./mvnw spring-boot:run
+    ```
+    The server will start at `http://localhost:8080`.
+    *Database console available at `http://localhost:8080/h2-console`*
+
+3.  **Start the Frontend**
+    Open a new terminal, navigate to the frontend directory, install dependencies, and start.
+    ```bash
+    cd frontend
+    npm install
+    npm start
+    ```
+    The application will run at `http://localhost:3000`.
 
 ## 📁 Project Structure
 
 ```
-Tournament Manager/
-├── src/main/java/
-│   └── com/esport/tournamentmanager/
-│       ├── controller/    # REST controllers
-│       ├── service/       # Business logic
-│       ├── repository/    # Database access
-│       ├── entity/        # JPA entities
-│       └── dto/           # Data transfer objects
-├── src/main/resources/
-│   └── application.properties
-├── frontend/
-│   └── src/
-│       ├── App.js        # Main component
-│       └── App.css       # Styles
-└── pom.xml               # Maven dependencies
+tournament-manager/
+├── backend/            # Spring Boot Application
+│   ├── src/main/java   # API Controllers, Services, Entities
+│   └── data/           # H2 Database files
+├── frontend/           # React Application
+│   ├── src/components  # Bracket & UI components
+│   └── public/         # Static assets
+└── scripts/            # Helper scripts (startup, setup)
 ```
 
-## 🛠️ Configuration
+## 🎮 Usage
 
-Edit `src/main/resources/application.properties`:
+1.  Open the dashboard.
+2.  Add players and create matches.
+3.  The **Tournament Bracket** will automatically generate.
+4.  Click on matches to update scores.
+5.  Watch as winners advance automatically through the bracket!
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/tournamentdb
-spring.datasource.username=postgres
-spring.datasource.password=postgres
-server.port=8080
-```
+## 🤝 Contributing
 
----
+Contributions, issues, and feature requests are welcome!
 
-**Made with Spring Boot + React + PostgreSQL** 🚀
+## 📝 License
+
+This project is open-source and available under the [MIT License](LICENSE).
 
