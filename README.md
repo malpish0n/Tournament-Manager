@@ -2,7 +2,6 @@
 
 A full-stack application for managing esports tournaments, organizing matches, and visualizing results with a dynamic bracket system.
 
-
 ## ✨ Features
 
 *   **Match Management**: Create, view, update, and delete matches.

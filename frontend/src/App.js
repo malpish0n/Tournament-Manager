@@ -19,6 +19,7 @@ function App() {
   const [teamBInput, setTeamBInput] = useState('');
   const [view, setView] = useState('home');
   const [createdMatchId, setCreatedMatchId] = useState(null); // New state to track created match
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
 
   // Bracket Creator State
   const [bracketSize, setBracketSize] = useState(4);
@@ -37,6 +38,30 @@ function App() {
   // Fetch data from API
   useEffect(() => {
     fetchData();
+  }, []);
+
+  // Mouse move effect for background glow
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setCursorPosition({ x: e.clientX, y: e.clientY });
+
+      // Calculate rotation for 3D tilt effect - More aggressive angles
+      // Formula: range -0.5 to 0.5 * multiplier
+      // Multiplier 10 means range is -5deg to +5deg
+      const rotateY = ((e.clientX / window.innerWidth) - 0.5) * 10;
+      const rotateX = ((e.clientY / window.innerHeight) - 0.5) * -10;
+
+      // Update CSS variables for shimmer grid mask and tilt logic
+      // Using documentElement makes variables available globally to all elements properly
+      const root = document.documentElement;
+      root.style.setProperty('--mouse-x', `${e.clientX}px`);
+      root.style.setProperty('--mouse-y', `${e.clientY}px`);
+      root.style.setProperty('--rotate-x', `${rotateX}deg`);
+      root.style.setProperty('--rotate-y', `${rotateY}deg`);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const fetchData = async () => {
@@ -294,6 +319,21 @@ function App() {
     return null;
   };
 
+  // Auto-generate bracket when participants change
+  useEffect(() => {
+    // Only generate if we have participants and no empty strings (or maybe we allow partial bracket for preview?)
+    // For now, let's just generate it if the size matches to keep it "live" without alert spam
+    if (bracketParticipants.length === bracketSize) {
+        // We don't want to alert on every keystroke, so we skip the validation alert here
+        // and just try to generate if possible, or maybe just generate empty structure?
+
+        // Actually, let's just create the structure even with empty names so the user sees the bracket updating
+        const emptyFilledParticipants = bracketParticipants.map(p => p || 'TBD');
+        const newBracket = generateBracket(emptyFilledParticipants);
+        setGeneratedBracket(newBracket);
+    }
+  }, [bracketParticipants, bracketSize]);
+
   const handleGenerateBracket = () => {
      // Validate
      if (bracketParticipants.some(p => !p.trim())) {
@@ -338,8 +378,18 @@ function App() {
 
   return (
     <div className="App">
+      <div className="background-grid" /> {/* Add grid element */}
+      {/*
+      <div
+        className="cursor-glow"
+        style={{
+          left: `${cursorPosition.x}px`,
+          top: `${cursorPosition.y}px`
+        }}
+      />
+      */}
       <header className="App-header">
-        <h1>
+        <h1 className="logo-text">
           <span style={{ color: 'var(--accent-primary)' }}>Tournament</span> Manager
         </h1>
         <nav className="nav-tabs">
@@ -458,10 +508,7 @@ function App() {
               <>
                 <div className="match-summary">
                   <h3>Step 3: Add Players to Teams</h3>
-                  <div className="selected-options">
-                    <span className="badge">Format: {matchFormat}</span>
-                    <span className="badge">Series: {seriesType}</span>
-                  </div>
+                  {/* Removed format summary badges as requested */}
                 </div>
 
                 <div className="teams-container">
@@ -493,7 +540,6 @@ function App() {
                           <button onClick={() => removePlayerFromTeam('A', player.id)}>✕</button>
                         </li>
                       ))}
-                      {teamAPlayers.length === 0 && <li className="empty">No players yet</li>}
                     </ul>
                   </div>
 
@@ -527,7 +573,6 @@ function App() {
                           <button onClick={() => removePlayerFromTeam('B', player.id)}>✕</button>
                         </li>
                       ))}
-                      {teamBPlayers.length === 0 && <li className="empty">No players yet</li>}
                     </ul>
                   </div>
                 </div>
@@ -584,7 +629,6 @@ function App() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '40px' }}></div>
 
               <div className="setup-section">
                 <h3>2. Add Participants</h3>
@@ -603,9 +647,6 @@ function App() {
                 </div>
               </div>
 
-              <button className="create-match-btn" onClick={handleGenerateBracket}>
-                 Generate Bracket
-              </button>
 
               {generatedBracket && (
                   <div className="bracket-display">
