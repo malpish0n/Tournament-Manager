@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import { generateBracket } from './bracketUtils';
+import TournamentBracket from './components/TournamentBracket';
 
 const API_URL = 'http://localhost:8080/api';
 
@@ -537,7 +538,7 @@ function App() {
               <div className="setup-section">
                 <h3>1. Choose Size</h3>
                 <div className="size-buttons">
-                  {[2, 4, 8, 16].map(size => (
+                  {[4, 8, 16].map(size => (
                     <button
                       key={size}
                       className={bracketSize === size ? 'active' : ''}
@@ -554,10 +555,10 @@ function App() {
                 <div className="participants-grid">
                   {bracketParticipants.map((name, index) => (
                     <div key={index} className="participant-input-group">
-                      <span className="seed">#{index + 1}</span>
+                      <span className="seed">{index + 1}.</span>
                       <input
                         type="text"
-                        placeholder={`Name/Team ${index + 1}`}
+                        placeholder={`Team name...`}
                         value={name}
                         onChange={(e) => handleParticipantChange(index, e.target.value)}
                       />
@@ -573,29 +574,11 @@ function App() {
               {generatedBracket && (
                   <div className="bracket-display">
                     <h3>Tournament Bracket</h3>
-                    <div className="bracket-rounds">
-                        {generatedBracket.map((round, rIndex) => (
-                            <div key={rIndex} className="bracket-round">
-                                <h4>Round {rIndex + 1}</h4>
-                                {round.map((match, mIndex) => (
-                                    <div key={match.id} className="bracket-match">
-                                        <div className={`bracket-player ${match.winner === match.player1 ? 'winner' : ''} ${!match.player1 ? 'tbd' : ''}`}>
-                                            <span>{match.player1 || 'TBD'}</span>
-                                            {match.player1 && !match.winner && (
-                                                <button onClick={() => handleBracketWin(rIndex, mIndex, match.player1)}>Win</button>
-                                            )}
-                                        </div>
-                                        <div className={`bracket-player ${match.winner === match.player2 ? 'winner' : ''} ${!match.player2 ? 'tbd' : ''}`}>
-                                            <span>{match.player2 || 'TBD'}</span>
-                                            {match.player2 && !match.winner && (
-                                                <button onClick={() => handleBracketWin(rIndex, mIndex, match.player2)}>Win</button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
+                    <TournamentBracket
+                        teams={bracketParticipants}
+                        matches={generatedBracket}
+                        onWin={handleBracketWin}
+                    />
                   </div>
               )}
             </div>

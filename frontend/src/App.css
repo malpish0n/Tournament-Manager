@@ -25,6 +25,26 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 5px;
+  border: 2px solid var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
 body {
   font-family: var(--font-main);
   background-color: var(--bg-dark);
@@ -187,6 +207,14 @@ h3 {
   color: var(--text-secondary);
   font-style: italic;
   text-align: center; /* Center series info text */
+}
+
+/* Match Creator Selected Options */
+.selected-options {
+  display: flex !important;
+  justify-content: center;
+  gap: 30px; /* Add space between Format and Series badges */
+  margin-bottom: 24px;
 }
 
 /* Teams Layout */
@@ -472,6 +500,17 @@ input:focus {
   border-color: var(--accent-primary);
 }
 
+.seed-badge {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 8px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
 .winner-badge {
   margin-top: 20px;
   text-align: center;
@@ -521,108 +560,124 @@ input:focus {
 
 .bracket-rounds {
   display: flex;
-  gap: 40px;
+  gap: 0; /* Removing gap to control spacing with pseudo-elements, or keep small gap and use relative positioning */
   justify-content: center;
   overflow-x: auto;
   padding-bottom: 20px;
+  padding-left: 20px; /* Ensure there's space on the left */
+  padding-right: 20px; /* Ensure there's space on the right */
 }
 
 .bracket-round {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  gap: 20px;
+  justify-content: space-around; /* Distribute matches evenly to align pairs */
   min-width: 200px;
+  position: relative;
+  margin: 0 20px;
+  padding-top: 40px; /* Space for the header */
+  /* Remove explicit gap to allow space-around to work fully */
+  /* If items are too close, space-around handles it if container is tall enough. */
 }
 
 .bracket-round h4 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   text-align: center;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  margin-bottom: 10px;
-  text-transform: uppercase;
+  margin: 0;
+  padding: 10px 0;
 }
+
+/* Lines Logic:
+   We can draw lines from the right of round N to the left of round N+1.
+   A simple approach in CSS for binary tree is hard without known heights.
+   However, we can try to use :after on matches to draw half-lines.
+
+   Better approach for dynamic brackets usually involves SVG or Canvas or precise absolute positioning.
+   For CSS-only simple brackets:
+   - Every pair of matches in Round N connects to one match in Round N+1.
+   - We can wrap pairs in a container, but our structure is flat list of matches per round.
+
+   Let's try a simple connector style:
+   - Right side of match: line going right.
+   - If it's an even index (0, 2, 4...), it goes down-right.
+   - If it's an odd index (1, 3, 5...), it goes up-right.
+   - The match in next round has a line coming from left.
+*/
 
 .bracket-match {
   background: var(--bg-dark);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible !important; /* Allow lines to extend outside, important to override previous hidden */
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
+  position: relative; /* For connectors */
+  margin-bottom: 0px; /* Removed margin to rely on flex gap for precise connector calculations */
+  z-index: 10;
 }
 
-.bracket-player {
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-card); /* Darker background inside match */
-  transition: background 0.2s ease;
-  min-height: 45px;
+/* Connecting particular matches is complex with just class names and flat lists.
+   We need to know if a match is "top" or "bottom" of a pair.
+   Our data structure is array of rounds.
+
+   Let's assume standard seeding:
+   Round 1: Match 0 & 1 -> Round 2 Match 0.
+
+   We can add classes in App.js or use :nth-child logic if the DOM structure allows.
+   Since we don't have "pair" wrappers, plain CSS lines are very tricky to get perfect.
+
+   Alternative: Add simple horizontal lines indicating flow, without the vertical "bracket" shape if too complex.
+   But user asked for "lines between teams".
+
+   Let's create a visual line element using pseudo-elements.
+
+   Strategy:
+   - Round N (except last): ::after on match draws line to right.
+   - We need vertical lines to connect the pair.
+*/
+
+/*
+   To do this properly without changing JS structure to tree, we can use a huge simplification:
+   Just lines to the side.
+
+   Or, we can try to use the fact that even/odd matches pair up.
+*/
+
+/* Horizontal line from every match extending right */
+.bracket-round:not(:last-child) .bracket-match::after {
+  content: '';
+  position: absolute;
+  right: -20px; /* Extend into the margin */
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--border-color);
+  z-index: 0;
 }
 
-.bracket-player:last-child {
-  border-bottom: none;
+/* Horizontal line into every match (except first round) extending left */
+.bracket-round:not(:first-child) .bracket-match::before {
+  content: '';
+  position: absolute;
+  left: -20px; /* Connect from the left */
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--border-color);
+  z-index: 0;
 }
 
-.bracket-player.winner {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success-color);
-  font-weight: 700;
+/* Fix missing left border radius in first round by ensuring overflow isn't cutting it */
+.bracket-match {
+  position: relative; /* Ensure lines are positioned relative to match */
+  overflow: visible !important; /* Allow lines to extend outside, important to override previous hidden */
 }
 
-.bracket-player.tbd {
-  color: var(--text-secondary);
-  font-style: italic;
-  opacity: 0.6;
-}
-
-.bracket-player button {
-  padding: 6px 12px; /* Bigger button padding */
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: var(--accent-primary); /* Accent color */
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  width: 100%; /* Make button fit the width */
-  margin-top: 5px; /* Add some space */
-}
-
-.bracket-player button:hover {
-  background: var(--accent-hover);
-}
-
-.bracket-player {
-    display: flex;
-    flex-direction: column; /* Stack name and button */
-    align-items: stretch; /* Stretch to fill width */
-    text-align: center;
-}
-
-/* Fix bracket player content layout for button */
-.bracket-player span {
-    margin-bottom: 5px;
-}
-
-/* Bracket Creator */
-.bracket-setup {
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
-
-.setup-section h3 {
-  text-align: left;
-  border-left: 4px solid var(--accent-magenta);
-  padding-left: 15px;
-  margin-bottom: 25px;
-}
-
+/* Size Buttons for Bracket Setup */
 .size-buttons {
   display: flex;
   gap: 15px;
@@ -633,7 +688,7 @@ input:focus {
   flex: 1; /* Keep flex-grow but constrain max width if needed, or rely on container */
   max-width: 150px; /* Optional: limit width so they don't stretch too much */
   padding: 12px 20px; /* Adjusted padding */
-  background: var(--bg-hover); /* Match theme */
+  background: var(--bg-card); /* Should match card bg, darker */
   border: 1px solid var(--border-color); /* Match theme border */
   color: var(--text-secondary);
   border-radius: 8px; /* Match theme radius */
@@ -651,6 +706,7 @@ input:focus {
   border-color: var(--text-secondary); /* Hover effect consistent with other buttons */
   color: var(--text-primary);
   transform: translateY(-2px);
+  background: var(--bg-hover); /* Added hover background change */
 }
 
 .size-buttons button.active {
@@ -660,141 +716,346 @@ input:focus {
   box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3); /* Theme shadow */
 }
 
-/* New styles for match summary section */
-.match-summary {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 20px;
+/* Bracket Creator Size Buttons - Stronger Selector */
+.bracket-creator .size-buttons button {
+  background-color: var(--bg-card) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-color) !important;
 }
 
-.selected-options {
-  display: flex;
-  gap: 20px; /* Add gap between Format and Series badges */
-  justify-content: center;
-  align-items: center;
-  margin-top: 10px;
+.bracket-creator .size-buttons button:hover {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--text-secondary) !important;
 }
 
-/* Success Message */
-.success-message {
-  margin-top: 24px;
-  padding: 16px;
-  background-color: var(--success-color);
-  color: white;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: 700;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
+.bracket-creator .size-buttons button.active {
+  background-color: var(--accent-primary) !important;
+  color: white !important;
+  border-color: var(--accent-primary) !important;
 }
 
-.success-message button {
-  background-color: white;
-  color: var(--success-color);
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
+/* Bracket Win Button */
+.bracket-player button {
+  padding: 4px 12px;
+  font-size: 0.75rem;
   font-weight: 600;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
+  background: var(--bg-hover); /* Dark background */
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px; /* Rounded corners but small */
+  cursor: pointer;
+  width: auto; /* Auto width */
+  margin-top: 0;
+  transition: all 0.2s;
+  text-transform: uppercase;
 }
 
-.success-message button:hover {
-  background-color: #f0fdf4; /* Very light green */
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.bracket-player button:hover {
+  background: var(--accent-primary); /* Violet on hover */
+  color: white;
+  border-color: var(--accent-primary);
 }
 
-/* Success Modal Overlay */
-.success-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+/* Ensure win button layout is good inside bracket-player */
+.bracket-player {
+    display: flex;
+    flex-direction: row !important; /* Force row layout */
+    justify-content: space-between !important; /* Space between name and button */
+    align-items: center !important; /* Center vertically */
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-card);
+    transition: background 0.2s ease;
+    min-height: 45px;
 }
 
-.success-modal {
-  background: var(--bg-card);
-  border: 1px solid var(--accent-primary); /* Changed to accent color (Violet) */
-  padding: 40px;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  max-width: 400px;
-  width: 90%;
-  animation: fadeIn 0.3s ease;
+/* Override previous styles */
+.bracket-player span {
+    margin-bottom: 0 !important; /* Reset margin */
+    margin-right: 10px; /* Add some space between name and button */
+    flex-grow: 1;
+    text-align: left;
 }
 
-.success-modal h3 {
-  color: var(--accent-primary); /* Changed to accent color (Violet) */
-  font-size: 1.5rem;
-  margin-bottom: 10px;
+/* Bracket Connectors - Tree Style */
+/* Hide the previous simple lines */
+.bracket-round:not(:last-child) .bracket-match::after,
+.bracket-round:not(:first-child) .bracket-match::before {
+  display: none;
 }
 
-.success-modal p {
-  color: var(--text-primary);
+/* Base positioning for connectors */
+.bracket-round {
+  position: relative;
+}
+
+.bracket-match {
+  position: relative;
+  overflow: visible;
+}
+
+/* Connector going RIGHT from Round N matches */
+/* We need a horizontal line extending right from the center of the match match */
+.bracket-round:not(:last-child) .bracket-match::after {
+  content: '';
+  display: block;
+  position: absolute;
+  right: -20px; /* Halfway to next round (gap is 40px? No, gap is dynamic or via padding) - actually gap is 0, margin on rounds. So distance between columns is 40px (20+20). */
+  width: 20px;
+  height: 2px;
+  background: var(--border-color);
+  top: 50%;
+  z-index: 1;
+}
+
+/* Vertical connections and entering lines for Round N+1 */
+/* This is tricky with flat structure. */
+/* Alternative visual trick:
+   Draw a line from match right side.
+   In next round, draw a line from match left side.
+   AND draw a vertical line connecting them?
+*/
+
+/*
+Logic:
+Round 1 matches (M1, M2) feed into Round 2 Match (M3).
+M1 is above, M2 is below.
+M1 needs line going Right then Down.
+M2 needs line going Right then Up.
+M3 needs line coming from Left.
+
+Implementation with nth-child:
+We assume standard bracket pairing (1-2, 3-4, etc.)
+*/
+
+/* Odd matches in round N (1st, 3rd...) - Top of the bracket fork */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after {
+  right: -20px; /* Extend right */
+  width: 20px;
+  height: calc(50% + 20px); /* Extend down to cover half the gap? */
+  /* Actually height is distance to next match center. */
+  /* If justify-content: center is used, distance depends on gap. Gap is 40px. */
+  /* Center to Center distance = MatchHeight + Gap
+     MatchHeight depends on contents. Approx 90px?
+     Gap is 40px.
+     So distance = ~130px.
+     We need to go down by 130px/2 = 65px?
+  */
+  /* This is unreliable with pure CSS and flexible size. */
+  border-bottom: 2px solid var(--border-color); /* Bottom of the "L" shape */
+  border-right: 2px solid var(--border-color);  /* Vertical part */
+  border-top: none;
+  background: transparent;
+  top: 50%;
+  width: 20px; /* Horizontal reach */
+  height: calc(100% + 40px); /* Height needs to reach the bottom sibling. Match is 100%, gap is 40px. So 100% + 40px connects center to center? No. */
+  /*
+     Top match: top 50%.
+     Bottom match: top 50%.
+     Distance = 50% (rest of top match) + 40px (gap) + 50% (top of bottom match).
+     So Height = 100% + 40px.
+  */
+  transform: translateY(0);
+}
+
+/* Even matches (2nd, 4th...) - Bottom of the bracket fork? Actually we only need one element to draw the "C" shape or "bracket" shape. */
+/* If we draw the full bracket on the ODD child, we don't need line on EVEN child?
+   No, we need the horizontal line from even child to join the vertical line.
+*/
+
+/* Let's try drawing connections relative to the NEXT round match (parent) looking back?
+   No, next round matches are 1 for 2 prev.
+   Match in Round 2 connects to Match 1 & 2 in Round 1.
+*/
+
+/* Let's go back to: Round N matches connect to each other vertically on the right side. */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after {
+  content: '';
+  position: absolute;
+  right: -20px; /* In the margin */
+  width: 20px;
+  top: 50%;
+  height: calc(100% + 40px); /* Match Height + gap */
+  background: transparent;
+  border-right: 2px solid var(--border-color); /* Vertical line */
+  border-top: 2px solid var(--border-color);   /* Horizontal line from Top match */
+  border-bottom: 2px solid var(--border-color);/* Horizontal line from Bottom match */
+  /* Border top/bottom draw the horizontal connectors for the pair! */
+}
+
+/* We discourage individual lines on even children if odd child handles both. */
+.bracket-round:not(:last-child) .bracket-match:nth-child(even)::after {
+  display: none;
+}
+
+/* Line entering the match in Round N+1 from the left */
+.bracket-round:not(:first-child) .bracket-match::before {
+  content: '';
+  display: block;
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--border-color);
+}
+
+/* Connector - Odd matches (Top of pair) */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  width: 20px;
+  height: calc(100% + 40px); /* Span down to the next match. Match height (approx 90px) + Gap (40px) */
+  /* Wait, height calculation is tricky if match height varies. */
+  /* Let's assume matches are fixed height or close to it. */
+  /* If matches are adjacent in DOM, distance is 100% of current match + Gap. */
+  /* Top of odd match is at 0. Top of even match is at 100% + Gap. */
+  /* Center of odd is 50%. Center of even is (100% + Gap + 50%). */
+  /* Distance = 100% + Gap + 50% - 50% = 100% + Gap. */
+  /* But 'height: 100%' in absolute refers to parent match height. */
+  /* So calc(100% + 40px) is correct if gap is 40px. */
+  border-top: 2px solid var(--border-color);
+  border-right: 2px solid var(--border-color);
+  border-bottom: 2px solid var(--border-color); /* Add bottom border to connect to the sibling below! */
+  background: transparent;
+  z-index: 1;
+  border-bottom-right-radius: 0; /* Square corners for tech look, or radius if desired */
+  border-top-right-radius: 0;
+}
+
+/* We hide the individual line from the bottom match because the top match draws the full "bracket C shape" */
+.bracket-round:not(:last-child) .bracket-match:nth-child(even)::after {
+  display: none !important;
+}
+
+/* Horizontal line from the "C" shape center to the next round match */
+/* The "C" shape created above on the odd match has a right border.
+   We need a line from the center of that right border to the next round match.
+   The next round match has ::before pointing left.
+   So we just need the "C" shape to be positioned correctly.
+*/
+/* The ::after on odd match is aligned to its own center.
+   It draws Top border (from match center rightwards).
+   It draws Right border (downwards).
+   It draws Bottom border (leftwards to the even match center).
+   Wait, if I use border-bottom, it draws a line at the bottom of the element.
+   The element height is distance between centers.
+   So the bottom border will align with the center of the underlying neighbor.
+   This creates a valid bracket shape: ]
+
+   Now we need a line from the middle of this ] shape to the right.
+   We can use ::before on the ODD match to draw the connector to the right?
+   Or rely on the next match's ::before to meet it?
+   Next match ::before goes left 20px.
+   Our bracket shape is at right: -20px. width 20px.
+   So the vertical line is at right: 0 (relative to match edge).
+   Next match is 40px away (margin 0 20px on rounds -> 40px gap).
+   Next match ::before reaches current match edge.
+   Perfect connection.
+*/
+
+/* Connector adjustment for the new logic */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd) {
+    /* Ensure z-index is correct */
+    z-index: 10;
+}
+
+/* Alternating background colors for teams in a match */
+/* "jeden zeby mial ten kolor co ma a drugi odrobine ciemniejszy" */
+/* The match container has 2 players. They are divs. */
+.bracket-player:first-child {
+    background-color: var(--bg-card); /* Standard card color */
+}
+
+.bracket-player:last-child {
+    background-color: #121215; /* Slightly darker than --bg-card (#18181b) */
+    /* Or use rgba for overlay */
+    /* background-color: rgba(0, 0, 0, 0.2); */
+    border-top: 1px solid var(--border-color); /* Ensure separator */
+}
+
+/* Fix rounded corners for the split backgrounds */
+.bracket-player:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.bracket-player:last-child {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-bottom: none; /* Last child shouldn't have bottom border if container has it? */
+    /* Match container has border. Players inside fill it. */
+}
+
+.bracket-match {
+    /* Remove padding/background to let children handle it if we want distinct backgrounds */
+    padding: 0;
+    overflow: visible; /* Keep visible for connectors */
+    border: 1px solid var(--border-color); /* Keep outer border */
+}
+
+/* Re-enable for nth-child after overriding */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after,
+.bracket-round:not(:last-child) .bracket-match:nth-child(even)::after {
+    display: block !important;
+}
+
+/* Participant List Tweaks for bracket creator input */
+.participants-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two columns */
+  gap: 20px;
   margin-bottom: 24px;
 }
 
-.success-actions {
+/* Move numbers to the left of input */
+.participant-input-group {
   display: flex;
-  gap: 12px;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
-.success-actions button {
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  font-size: 0.95rem;
-  transition: all 0.2s;
-}
-
-.success-actions button.view-btn {
-  background: var(--accent-primary); /* Changed to accent color (Violet) */
-  color: white;
-}
-
-.success-actions button.view-btn:hover {
-  background: var(--accent-hover); /* Changed to accent hover color */
-}
-
-.success-actions button.close-btn {
-  background: var(--bg-hover);
+.participant-input-group label {
   color: var(--text-secondary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  width: 30px; /* Fixed width for numbers */
+  text-align: right;
 }
 
-.success-actions button.close-btn:hover {
-  background: #3f3f46; /* Zinc 700 */
+.participant-input-group input {
+  flex: 1;
+  width: 100%; /* Take full width of grid cell */
+  min-width: 100px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   color: var(--text-primary);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+  outline: none;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.participant-input-group input:focus {
+  border-color: var(--accent-primary);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .teams-container {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .vs-divider {
-    margin: 10px 0;
-    font-size: 1rem;
-  }
+/* Show number as text "1.", "2." */
+.participant-input-group span {
+  display: inline-block;
+  color: var(--text-secondary);
+  font-weight: 700;
+  margin-right: 8px;
+  min-width: 25px;
+  text-align: right;
+}
+
+.participant-input-group::before {
+  display: none;
 }
