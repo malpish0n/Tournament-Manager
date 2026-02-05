@@ -1,61 +1,96 @@
 export const generateBracket = (participants) => {
     const size = participants.length;
-    const rounds = [];
     let matchIdCounter = 1;
 
-    // Helper to calculate rounds count (log2 of size)
-    const totalRounds = Math.log2(size);
+    // Calculate proper seeding order
+    // e.g. for 8 teams (4 matches): [1, 4, 2, 3] -> Matches 1v8, 4v5, 2v7, 3v6
+    const getMatchOrder = (numMatches) => {
+        let seeds = [1];
+        let count = 1;
+        while (count < numMatches) {
+            const next = [];
+            for (let s of seeds) {
+                next.push(s);
+                next.push(count * 2 + 1 - s);
+            }
+            seeds = next;
+            count *= 2;
+        }
+        return seeds;
+    };
+
+    const numMatchesR1 = size / 2;
+    const matchSeeds = getMatchOrder(numMatchesR1);
 
     // ROUND 1
-    const round1 = [];
-    const numMatchesR1 = size / 2;
+    const round1 = matchSeeds.map(seed => {
+        const p1Idx = seed - 1;
+        const p2Idx = size - seed;
 
-    // Simple seeding logic: 1 vs Size, 2 vs Size-1, etc.
-    // Or just adjacent pairs: 1 vs 2, 3 vs 4.
-    // Let's do adjacent for simplicity of visual flow (Top to Bottom)
-    // 1 vs 2 -> Winner to Next Match Top
-    // 3 vs 4 -> Winner to Next Match Bottom
-    for (let i = 0; i < numMatchesR1; i++) {
-        round1.push({
+        const p1Name = participants[p1Idx] ? `#${seed} ${participants[p1Idx]}` : 'TBD';
+        const p2Name = participants[p2Idx] ? `#${size - seed + 1} ${participants[p2Idx]}` : 'TBD';
+
+        return {
             id: matchIdCounter++,
             round: 1,
-            player1: participants[i * 2] || 'BYE',
-            player2: participants[i * 2 + 1] || 'BYE',
-            score1: '',
-            score2: '',
-            winner: null,
-            nextMatchId: null // To be filled
-        });
-    }
-    rounds.push(round1);
+            player1: p1Name,
+            player2: p2Name,
+            winner: null
+        };
+    });
 
-    // SUBSEQUENT ROUNDS
-    let currentRoundMatches = round1;
-    for (let r = 2; r <= totalRounds; r++) {
-        const nextRoundMatches = [];
-        const numMatches = currentRoundMatches.length / 2;
+    const rounds = [round1];
+    let currentRound = round1;
 
-        for (let i = 0; i < numMatches; i++) {
-            const match = {
+    // Generate subsequent rounds
+    while (currentRound.length > 1) {
+        const nextRound = [];
+        for (let i = 0; i < currentRound.length; i += 2) {
+            nextRound.push({
                 id: matchIdCounter++,
-                round: r,
-                player1: null, // To be decided from previous round
-                player2: null,
-                score1: '',
-                score2: '',
-                winner: null
-            };
-
-            // Link previous matches to this one
-            currentRoundMatches[i * 2].nextMatchId = match.id;
-            currentRoundMatches[i * 2 + 1].nextMatchId = match.id;
-
-            nextRoundMatches.push(match);
+                round: rounds.length + 1,
+                player1: null, // To be filled by winner of currentRound[i]
+                player2: null, // To be filled by winner of currentRound[i+1]
+                winner: null,
+                sourceMatch1: currentRound[i].id,
+                sourceMatch2: currentRound[i + 1].id
+            });
         }
-        rounds.push(nextRoundMatches);
-        currentRoundMatches = nextRoundMatches;
+        rounds.push(nextRound);
+        currentRound = nextRound;
     }
 
     return rounds;
+};
+
+export const updateBracket = (bracket, roundIndex, matchIndex, winnerName) => {
+    // Deep copy
+    const newBracket = JSON.parse(JSON.stringify(bracket));
+    const match = newBracket[roundIndex][matchIndex];
+
+    // Set winner
+    match.winner = winnerName;
+
+    // Propagate to next round
+    const nextRoundIndex = roundIndex + 1;
+    if (nextRoundIndex < newBracket.length) {
+        // Find match in next round that depends on this match
+        const nextRound = newBracket[nextRoundIndex];
+        const nextMatch = nextRound.find(m =>
+            m.sourceMatch1 === match.id || m.sourceMatch2 === match.id
+        );
+
+        if (nextMatch) {
+            if (nextMatch.sourceMatch1 === match.id) {
+                nextMatch.player1 = winnerName;
+            } else {
+                nextMatch.player2 = winnerName;
+            }
+            // Reset next match winner if it was already set (in case of correction)
+            nextMatch.winner = null;
+        }
+    }
+
+    return newBracket;
 };
 

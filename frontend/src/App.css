@@ -25,6 +25,26 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 5px;
+  border: 2px solid var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
 body {
   font-family: var(--font-main);
   background-color: var(--bg-dark);
@@ -187,6 +207,14 @@ h3 {
   color: var(--text-secondary);
   font-style: italic;
   text-align: center; /* Center series info text */
+}
+
+/* Match Creator Selected Options */
+.selected-options {
+  display: flex !important;
+  justify-content: center;
+  gap: 30px; /* Add space between Format and Series badges */
+  margin-bottom: 24px;
 }
 
 /* Teams Layout */
@@ -472,6 +500,17 @@ input:focus {
   border-color: var(--accent-primary);
 }
 
+.seed-badge {
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 8px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
 .winner-badge {
   margin-top: 20px;
   text-align: center;
@@ -525,16 +564,30 @@ input:focus {
   justify-content: center;
   overflow-x: auto;
   padding-bottom: 20px;
+  padding-left: 20px; /* Ensure there's space on the left */
+  padding-right: 20px; /* Ensure there's space on the right */
 }
 
 .bracket-round {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 40px;
+  justify-content: space-around; /* Distribute matches evenly to align pairs */
   min-width: 200px;
   position: relative;
-  margin: 0 20px; /* spacing between rounds */
+  margin: 0 20px;
+  padding-top: 40px; /* Space for the header */
+  /* Remove explicit gap to allow space-around to work fully */
+  /* If items are too close, space-around handles it if container is tall enough. */
+}
+
+.bracket-round h4 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  margin: 0;
+  padding: 10px 0;
 }
 
 /* Lines Logic:
@@ -557,13 +610,13 @@ input:focus {
 .bracket-match {
   background: var(--bg-dark);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible !important; /* Allow lines to extend outside, important to override previous hidden */
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
   position: relative; /* For connectors */
-  margin-bottom: 20px; /* spacing */
+  margin-bottom: 0px; /* Removed margin to rely on flex gap for precise connector calculations */
   z-index: 10;
 }
 
@@ -603,46 +656,26 @@ input:focus {
   width: 20px;
   height: 2px;
   background: var(--border-color);
+  z-index: 0;
 }
 
 /* Horizontal line into every match (except first round) extending left */
 .bracket-round:not(:first-child) .bracket-match::before {
   content: '';
   position: absolute;
-  left: -20px;
+  left: -20px; /* Connect from the left */
   top: 50%;
   width: 20px;
   height: 2px;
   background: var(--border-color);
+  z-index: 0;
 }
 
-/* Vertical connectors attempt for pairs */
-/* This requires knowing which matches are pairs.
-   In round 1: Match 0+1, 2+3, etc.
-   If we can target them:
-*/
-
-/* We can use CSS :nth-child to create the bracket "fork" for the first round at least?
-   No, because the gap size varies.
-
-   Actually, with `justify-content: center` and consistent gaps, the distance might be predictable?
-   No, subsequent rounds expand.
-
-   Let's try a generic "connector" approach that works okay-ish for simple trees.
-
-   It is extremely difficult to do perfect bracket lines with pure CSS on a flat list without nesting pairs.
-   The user asked to "add lines". I will add the horizontal guide lines as a start,
-   and maybe a vertical one if I can assume pairs are adjacent in DOM.
-*/
-
-/*
-   Let's try to wrap pairs in JS? No, user asked for CSS update usually implies visual fix.
-   But I can edit JS to structuralize it better?
-   Let's stick to CSS first.
-
-   If we assume pairs are strictly adjacent 0,1  2,3 etc.
-   We can try to put a vertical bar on the right of the "odd" (1st of pair) match extending down?
-*/
+/* Fix missing left border radius in first round by ensuring overflow isn't cutting it */
+.bracket-match {
+  position: relative; /* Ensure lines are positioned relative to match */
+  overflow: visible !important; /* Allow lines to extend outside, important to override previous hidden */
+}
 
 /* Size Buttons for Bracket Setup */
 .size-buttons {
@@ -743,4 +776,286 @@ input:focus {
     margin-right: 10px; /* Add some space between name and button */
     flex-grow: 1;
     text-align: left;
+}
+
+/* Bracket Connectors - Tree Style */
+/* Hide the previous simple lines */
+.bracket-round:not(:last-child) .bracket-match::after,
+.bracket-round:not(:first-child) .bracket-match::before {
+  display: none;
+}
+
+/* Base positioning for connectors */
+.bracket-round {
+  position: relative;
+}
+
+.bracket-match {
+  position: relative;
+  overflow: visible;
+}
+
+/* Connector going RIGHT from Round N matches */
+/* We need a horizontal line extending right from the center of the match match */
+.bracket-round:not(:last-child) .bracket-match::after {
+  content: '';
+  display: block;
+  position: absolute;
+  right: -20px; /* Halfway to next round (gap is 40px? No, gap is dynamic or via padding) - actually gap is 0, margin on rounds. So distance between columns is 40px (20+20). */
+  width: 20px;
+  height: 2px;
+  background: var(--border-color);
+  top: 50%;
+  z-index: 1;
+}
+
+/* Vertical connections and entering lines for Round N+1 */
+/* This is tricky with flat structure. */
+/* Alternative visual trick:
+   Draw a line from match right side.
+   In next round, draw a line from match left side.
+   AND draw a vertical line connecting them?
+*/
+
+/*
+Logic:
+Round 1 matches (M1, M2) feed into Round 2 Match (M3).
+M1 is above, M2 is below.
+M1 needs line going Right then Down.
+M2 needs line going Right then Up.
+M3 needs line coming from Left.
+
+Implementation with nth-child:
+We assume standard bracket pairing (1-2, 3-4, etc.)
+*/
+
+/* Odd matches in round N (1st, 3rd...) - Top of the bracket fork */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after {
+  right: -20px; /* Extend right */
+  width: 20px;
+  height: calc(50% + 20px); /* Extend down to cover half the gap? */
+  /* Actually height is distance to next match center. */
+  /* If justify-content: center is used, distance depends on gap. Gap is 40px. */
+  /* Center to Center distance = MatchHeight + Gap
+     MatchHeight depends on contents. Approx 90px?
+     Gap is 40px.
+     So distance = ~130px.
+     We need to go down by 130px/2 = 65px?
+  */
+  /* This is unreliable with pure CSS and flexible size. */
+  border-bottom: 2px solid var(--border-color); /* Bottom of the "L" shape */
+  border-right: 2px solid var(--border-color);  /* Vertical part */
+  border-top: none;
+  background: transparent;
+  top: 50%;
+  width: 20px; /* Horizontal reach */
+  height: calc(100% + 40px); /* Height needs to reach the bottom sibling. Match is 100%, gap is 40px. So 100% + 40px connects center to center? No. */
+  /*
+     Top match: top 50%.
+     Bottom match: top 50%.
+     Distance = 50% (rest of top match) + 40px (gap) + 50% (top of bottom match).
+     So Height = 100% + 40px.
+  */
+  transform: translateY(0);
+}
+
+/* Even matches (2nd, 4th...) - Bottom of the bracket fork? Actually we only need one element to draw the "C" shape or "bracket" shape. */
+/* If we draw the full bracket on the ODD child, we don't need line on EVEN child?
+   No, we need the horizontal line from even child to join the vertical line.
+*/
+
+/* Let's try drawing connections relative to the NEXT round match (parent) looking back?
+   No, next round matches are 1 for 2 prev.
+   Match in Round 2 connects to Match 1 & 2 in Round 1.
+*/
+
+/* Let's go back to: Round N matches connect to each other vertically on the right side. */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after {
+  content: '';
+  position: absolute;
+  right: -20px; /* In the margin */
+  width: 20px;
+  top: 50%;
+  height: calc(100% + 40px); /* Match Height + gap */
+  background: transparent;
+  border-right: 2px solid var(--border-color); /* Vertical line */
+  border-top: 2px solid var(--border-color);   /* Horizontal line from Top match */
+  border-bottom: 2px solid var(--border-color);/* Horizontal line from Bottom match */
+  /* Border top/bottom draw the horizontal connectors for the pair! */
+}
+
+/* We discourage individual lines on even children if odd child handles both. */
+.bracket-round:not(:last-child) .bracket-match:nth-child(even)::after {
+  display: none;
+}
+
+/* Line entering the match in Round N+1 from the left */
+.bracket-round:not(:first-child) .bracket-match::before {
+  content: '';
+  display: block;
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: var(--border-color);
+}
+
+/* Connector - Odd matches (Top of pair) */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  width: 20px;
+  height: calc(100% + 40px); /* Span down to the next match. Match height (approx 90px) + Gap (40px) */
+  /* Wait, height calculation is tricky if match height varies. */
+  /* Let's assume matches are fixed height or close to it. */
+  /* If matches are adjacent in DOM, distance is 100% of current match + Gap. */
+  /* Top of odd match is at 0. Top of even match is at 100% + Gap. */
+  /* Center of odd is 50%. Center of even is (100% + Gap + 50%). */
+  /* Distance = 100% + Gap + 50% - 50% = 100% + Gap. */
+  /* But 'height: 100%' in absolute refers to parent match height. */
+  /* So calc(100% + 40px) is correct if gap is 40px. */
+  border-top: 2px solid var(--border-color);
+  border-right: 2px solid var(--border-color);
+  border-bottom: 2px solid var(--border-color); /* Add bottom border to connect to the sibling below! */
+  background: transparent;
+  z-index: 1;
+  border-bottom-right-radius: 0; /* Square corners for tech look, or radius if desired */
+  border-top-right-radius: 0;
+}
+
+/* We hide the individual line from the bottom match because the top match draws the full "bracket C shape" */
+.bracket-round:not(:last-child) .bracket-match:nth-child(even)::after {
+  display: none !important;
+}
+
+/* Horizontal line from the "C" shape center to the next round match */
+/* The "C" shape created above on the odd match has a right border.
+   We need a line from the center of that right border to the next round match.
+   The next round match has ::before pointing left.
+   So we just need the "C" shape to be positioned correctly.
+*/
+/* The ::after on odd match is aligned to its own center.
+   It draws Top border (from match center rightwards).
+   It draws Right border (downwards).
+   It draws Bottom border (leftwards to the even match center).
+   Wait, if I use border-bottom, it draws a line at the bottom of the element.
+   The element height is distance between centers.
+   So the bottom border will align with the center of the underlying neighbor.
+   This creates a valid bracket shape: ]
+
+   Now we need a line from the middle of this ] shape to the right.
+   We can use ::before on the ODD match to draw the connector to the right?
+   Or rely on the next match's ::before to meet it?
+   Next match ::before goes left 20px.
+   Our bracket shape is at right: -20px. width 20px.
+   So the vertical line is at right: 0 (relative to match edge).
+   Next match is 40px away (margin 0 20px on rounds -> 40px gap).
+   Next match ::before reaches current match edge.
+   Perfect connection.
+*/
+
+/* Connector adjustment for the new logic */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd) {
+    /* Ensure z-index is correct */
+    z-index: 10;
+}
+
+/* Alternating background colors for teams in a match */
+/* "jeden zeby mial ten kolor co ma a drugi odrobine ciemniejszy" */
+/* The match container has 2 players. They are divs. */
+.bracket-player:first-child {
+    background-color: var(--bg-card); /* Standard card color */
+}
+
+.bracket-player:last-child {
+    background-color: #121215; /* Slightly darker than --bg-card (#18181b) */
+    /* Or use rgba for overlay */
+    /* background-color: rgba(0, 0, 0, 0.2); */
+    border-top: 1px solid var(--border-color); /* Ensure separator */
+}
+
+/* Fix rounded corners for the split backgrounds */
+.bracket-player:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.bracket-player:last-child {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-bottom: none; /* Last child shouldn't have bottom border if container has it? */
+    /* Match container has border. Players inside fill it. */
+}
+
+.bracket-match {
+    /* Remove padding/background to let children handle it if we want distinct backgrounds */
+    padding: 0;
+    overflow: visible; /* Keep visible for connectors */
+    border: 1px solid var(--border-color); /* Keep outer border */
+}
+
+/* Re-enable for nth-child after overriding */
+.bracket-round:not(:last-child) .bracket-match:nth-child(odd)::after,
+.bracket-round:not(:last-child) .bracket-match:nth-child(even)::after {
+    display: block !important;
+}
+
+/* Participant List Tweaks for bracket creator input */
+.participants-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two columns */
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* Move numbers to the left of input */
+.participant-input-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.participant-input-group label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  width: 30px; /* Fixed width for numbers */
+  text-align: right;
+}
+
+.participant-input-group input {
+  flex: 1;
+  width: 100%; /* Take full width of grid cell */
+  min-width: 100px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.participant-input-group input:focus {
+  border-color: var(--accent-primary);
+}
+
+/* Show number as text "1.", "2." */
+.participant-input-group span {
+  display: inline-block;
+  color: var(--text-secondary);
+  font-weight: 700;
+  margin-right: 8px;
+  min-width: 25px;
+  text-align: right;
+}
+
+.participant-input-group::before {
+  display: none;
 }
