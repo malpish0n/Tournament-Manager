@@ -20,9 +20,11 @@
 }
 
 html {
-  overflow-y: scroll;
+  overflow-y: auto; /* Change from scroll to auto */
   overflow-x: hidden;
   scrollbar-gutter: stable;
+  height: 100%; /* Ensure html takes full height */
+  background: #09090b; /* Match the dark bg to prevent white flash on overscroll */
 }
 
 /* Custom Scrollbar */
@@ -47,13 +49,16 @@ html {
 
 body {
   font-family: var(--font-main);
-  background: var(--bg-dark); /* Fallback */
+  background: #09090b; /* Fallback */
   background: linear-gradient(to top left, #09090b 0%, #1c1c1f 100%);
+  background-attachment: fixed; /* Fix gradient to viewport */
   color: var(--text-primary);
   min-height: 100vh;
+  margin: 0; /* Ensure no margin on body */
   overflow-x: hidden;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none; /* Prevent bounce/overscroll effect showing white */
 }
 
 .App {
@@ -63,9 +68,9 @@ body {
 }
 
 .App-header {
-  background-color: var(--bg-card);
-  padding: 30px 40px;
-  border-bottom: 1px solid var(--border-color);
+  background-color: transparent;
+  padding: 30px 40px 0 40px; /* Reduced bottom padding to remove space */
+  border-bottom: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -128,7 +133,7 @@ body {
 /* Main Container */
 .container {
   max-width: 1000px;
-  margin: 40px auto;
+  margin: 0 auto 40px auto; /* Removed top margin */
   padding: 0 20px;
   flex: 1;
 }
