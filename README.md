@@ -2,9 +2,6 @@
 
 A full-stack application for managing esports tournaments, organizing matches, and visualizing results with a dynamic bracket system.
 
-![Tournament Bracket](https://via.placeholder.com/800x400.png?text=Tournament+Manager+Preview)
-*(You can replace this placeholder with a screenshot of your symmetric bracket)*
-
 ## ✨ Features
 
 *   **Match Management**: Create, view, update, and delete matches.
