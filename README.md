@@ -2,7 +2,7 @@
 
 A full-stack application for managing esports tournaments, organizing matches, and visualizing results with a dynamic bracket system.
 
-<img width="1623" height="967" alt="obraz" src="https://github.com/user-attachments/assets/da5a9684-619a-4e91-954e-cf9b18b5319e" />
+<img width="1620" height="965" alt="obraz" src="https://github.com/user-attachments/assets/881dcd5d-19de-46a3-be02-f7e50d12ab90" />
 
 ## ✨ Features
 
