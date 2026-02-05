@@ -550,6 +550,8 @@ function App() {
                 </div>
               </div>
 
+              <div style={{ marginBottom: '40px' }}></div>
+
               <div className="setup-section">
                 <h3>2. Add Participants</h3>
                 <div className="participants-grid">
