@@ -17,7 +17,7 @@ function App() {
   const [newPlayerNick, setNewPlayerNick] = useState('');
   const [teamAInput, setTeamAInput] = useState('');
   const [teamBInput, setTeamBInput] = useState('');
-  const [view, setView] = useState('matchCreator');
+  const [view, setView] = useState('home');
   const [createdMatchId, setCreatedMatchId] = useState(null); // New state to track created match
 
   // Bracket Creator State
@@ -339,9 +339,16 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Tournament Manager</h1>
-        <p className="subtitle">Professional Tournament Management System</p>
+        <h1>
+          <span style={{ color: 'var(--accent-primary)' }}>Tournament</span> Manager
+        </h1>
         <nav className="nav-tabs">
+          <button
+            className={view === 'home' ? 'active' : ''}
+            onClick={() => setView('home')}
+          >
+            Home
+          </button>
           <button
             className={view === 'matchCreator' ? 'active' : ''}
             onClick={() => setView('matchCreator')}
@@ -364,6 +371,33 @@ function App() {
       </header>
 
       <main className="container">
+        {view === 'home' && (
+          <div className="home-hero">
+             <div className="hero-content">
+                <h1>Organize Your Tournaments Like a Pro</h1>
+                <p>Manage brackets, track scores, and handle team rosters effortlessly.</p>
+                <div className="hero-buttons">
+                    <button className="primary-btn" onClick={() => setView('bracketCreator')}>Create Bracket</button>
+                    <button className="secondary-btn" onClick={() => setView('matchCreator')}>Start Match</button>
+                </div>
+             </div>
+             <div className="features-grid">
+                <div className="feature-card">
+                    <h3>🏆 Dynamic Brackets</h3>
+                    <p>Auto-generating symmetric brackets that update in real-time as matches progress.</p>
+                </div>
+                <div className="feature-card">
+                    <h3>⚔️ Match Management</h3>
+                    <p>Support for BO1, BO3, BO5 formats with comprehensive score tracking.</p>
+                </div>
+                <div className="feature-card">
+                    <h3>👥 Team & Player</h3>
+                    <p>Easily manage rosters, add players, and organize teams for each tournament.</p>
+                </div>
+             </div>
+          </div>
+        )}
+
         {view === 'matchCreator' && (
           <div className="match-creator">
             <h2>Create Match</h2>
