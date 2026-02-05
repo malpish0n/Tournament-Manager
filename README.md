@@ -2,7 +2,6 @@
 
 A full-stack application for managing esports tournaments, organizing matches, and visualizing results with a dynamic bracket system.
 
-<img width="1620" height="965" alt="obraz" src="https://github.com/user-attachments/assets/881dcd5d-19de-46a3-be02-f7e50d12ab90" />
 
 ## ✨ Features
 
@@ -88,4 +87,3 @@ Contributions, issues, and feature requests are welcome!
 ## 📝 License
 
 This project is open-source and available under the [MIT License](LICENSE).
-
